@@ -4,6 +4,8 @@ from typing import Dict, List, Any
 from ui.history_view import show_watch_history
 from ui.wordcloud_view import show_wordcloud
 from ui.settings_view import show_settings
+# 导入数据分析视图
+from ui.analysis_view import show_analysis_overview
 
 
 def create_sidebar(client, user_info: Dict[str, Any], content_area: ft.Container,
@@ -54,6 +56,14 @@ def create_sidebar(client, user_info: Dict[str, Any], content_area: ft.Container
         lambda _: show_watch_history(client, history, content_area)
     )
 
+    # 添加数据分析选项
+    nav_analysis = create_nav_item(
+        client,
+        "数据分析",
+        ft.Icons.INSERT_CHART,
+        lambda _: show_analysis_overview(client, history, content_area)
+    )
+
     nav_wordcloud = create_nav_item(
         client,
         "标签词云",
@@ -78,6 +88,7 @@ def create_sidebar(client, user_info: Dict[str, Any], content_area: ft.Container
             ft.Container(
                 content=ft.Column([
                     nav_history,
+                    nav_analysis,  # 添加数据分析选项
                     nav_wordcloud,
                     nav_settings,
                 ], spacing=0),

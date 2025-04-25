@@ -25,7 +25,7 @@ def setup_login_screen(page: ft.Page, client) -> None:
     login_card = ft.Card(
         content=ft.Container(
             content=ft.Column([
-                # Bilibili logo
+                # B站Logo
                 ft.Container(
                     content=ft.Row([
                         ft.Text(
@@ -45,11 +45,10 @@ def setup_login_screen(page: ft.Page, client) -> None:
                     ),
                     margin=ft.margin.only(bottom=20)
                 ),
-
-                # 使用Base64直接显示QR码，无需文件
+                # 二维码图片
                 ft.Container(
                     content=ft.Image(
-                        src=qrcode_path,  # 直接使用Base64图片数据
+                        src=qrcode_path,
                         width=200,
                         height=200,
                         fit=ft.ImageFit.CONTAIN,
@@ -97,7 +96,7 @@ def setup_login_screen(page: ft.Page, client) -> None:
     import threading
     check_thread = threading.Thread(
         target=client.check_login_status,
-        args=(qrcode_key, page),
+        args=(qrcode_key, qrcode_path, page),
         daemon=True
     )
     check_thread.start()
