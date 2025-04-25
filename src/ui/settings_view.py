@@ -1,6 +1,4 @@
 import flet as ft
-import sys
-import threading
 
 
 def show_settings(client, content_area: ft.Container) -> None:
@@ -50,10 +48,6 @@ def show_settings(client, content_area: ft.Container) -> None:
                 ),
 
                 # 移除外观部分
-                # ft.Container(height=20),  # 移除Spacer
-                # ft.Text(...),  # 移除外观标题
-                # ft.Divider(...),  # 移除分割线
-                # ft.Container(...),  # 移除主题切换开关
 
                 ft.Container(height=20),  # Spacer
 

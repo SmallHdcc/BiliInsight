@@ -1,6 +1,5 @@
 import flet as ft
 from typing import Dict, List, Any
-import time
 from datetime import datetime, timedelta
 import logging
 

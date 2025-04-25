@@ -1,7 +1,5 @@
 import qrcode
 import requests
-import io
-import base64
 from typing import Dict, List, Optional, Any, Tuple
 import time
 import logging

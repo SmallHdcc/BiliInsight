@@ -1,5 +1,3 @@
-import base64
-from io import BytesIO
 import flet as ft
 from typing import Dict, List, Any
 

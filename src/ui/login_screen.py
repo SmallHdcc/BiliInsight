@@ -93,7 +93,6 @@ def setup_login_screen(page: ft.Page, client) -> None:
     page.update()
 
     # 启动登录状态检查线程
-    import threading
     check_thread = threading.Thread(
         target=client.check_login_status,
         args=(qrcode_key, qrcode_path, page),
