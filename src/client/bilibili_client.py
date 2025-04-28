@@ -63,16 +63,16 @@ class BilibiliClient:
             if status == 0:  # Login successful
                 self.login_cookies = cookies
                 self._handle_successful_login(page)
-                # 登陆成功之后删除图片
-                import os
-                if os.path.exists(qr_file_path):
-                    os.remove(qr_file_path)
+
                 break
             elif status == 86038:  # QR code expired
                 self._handle_expired_qr_code(page)
                 break
 
-            time.sleep(2)
+        # 删除图片
+        import os
+        if os.path.exists(qr_file_path):
+            os.remove(qr_file_path)
 
     def _handle_successful_login(self, page: ft.Page) -> None:
         """Handle successful login by setting up the main UI."""

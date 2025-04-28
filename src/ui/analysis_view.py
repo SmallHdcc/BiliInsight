@@ -57,17 +57,30 @@ def show_analysis_overview(client, history: List[Dict[str, Any]], content_area: 
     # 创建时间分布图表
     time_chart = create_time_chart(client, analysis_data)
 
-    # 创建兴趣标签区域
-    interest_tags = create_interest_tags(client, analysis_data)
+    personality_report = generate_personality_report(analysis_data)
+    personality_report_container = ft.Container(
+        content=ft.Column([
+            ft.Text("分析报告", size=16, weight="bold", color=theme["text"]),
+            ft.Container(height=10),
+            ft.Markdown(
+                personality_report,
+                selectable=True,
+                extension_set=ft.MarkdownExtensionSet.GITHUB_WEB,
+                code_theme="atom-one-dark",
+            ),
+        ]),
+        bgcolor=theme["card"],
+        border_radius=10,
+        padding=15,
+    )
 
-    # 将所有内容组合在一起
+    # 修改布局添加报告区域
     content = ft.Column(
         [
             title,
             ft.Container(height=20),  # 间隔
             stats_row,
             ft.Container(height=20),  # 间隔
-
             # 每日观看时长图表
             ft.Container(
                 content=ft.Column([
@@ -105,14 +118,9 @@ def show_analysis_overview(client, history: List[Dict[str, Any]], content_area: 
             ),
 
             ft.Container(height=20),  # 间隔
-
-            # 兴趣标签
-            ft.Container(
-                content=interest_tags,
-                bgcolor=theme["card"],
-                border_radius=10,
-                padding=15,
-            ),
+            # 新增: 个性化分析报告
+            personality_report_container,
+            ft.Container(height=20),  # 间隔
         ],
         spacing=0,
         scroll=ft.ScrollMode.AUTO,
@@ -142,7 +150,6 @@ def generate_analysis_data(history: List[Dict[str, Any]]) -> Dict[str, Any]:
             "12-18点": 0,
             "18-24点": 0,
         },
-        "interest_tags": []
     }
 
     # 统计分类数据
@@ -168,8 +175,9 @@ def generate_analysis_data(history: List[Dict[str, Any]]) -> Dict[str, Any]:
     for item in history:
         # 累计进度时长
         progress = item.get("progress", 0)
-        if progress:
-            total_progress += progress
+        if progress < 0:
+            progress = item.get("duration", 0)
+        total_progress += progress
 
         # 分类统计
         if "tag_name" in item:
@@ -215,7 +223,7 @@ def generate_analysis_data(history: List[Dict[str, Any]]) -> Dict[str, Any]:
     result["total_hours"] = round(total_progress / 3600, 1)
 
     # 平均每日视频数
-    result["avg_daily"] = round(len(history) / 7, 1)
+    result["avg_daily"] = round(len(history) / 7, 0)
 
     # 最常看的分类
     if category_counter:
@@ -233,12 +241,6 @@ def generate_analysis_data(history: List[Dict[str, Any]]) -> Dict[str, Any]:
             "progress": round(stats["progress"] / 60, 1)  # 转换为分钟，保留一位小数
         }
         for date, stats in daily_stats.items()
-    ]
-
-    # 兴趣标签 - 取前10个最频繁的
-    result["interest_tags"] = [
-        {"tag": tag, "weight": count}
-        for tag, count in sorted(tag_counter.items(), key=lambda x: x[1], reverse=True)[:10]
     ]
 
     logger.debug(
@@ -277,8 +279,6 @@ def create_stat_card(client, title: str, value: str, icon: str) -> ft.Container:
         bgcolor=theme["card"],
         border_radius=10,
     )
-
-# 最简单的方法 - 使用固定像素宽度
 
 
 def create_category_chart(client, data: Dict[str, Any]) -> ft.Column:
@@ -426,75 +426,8 @@ def create_time_chart(client, data: Dict[str, Any]) -> ft.Column:
     ], spacing=0)
 
 
-def create_interest_tags(client, data: Dict[str, Any]) -> ft.Column:
-    """创建兴趣标签区域"""
-    theme = client.get_current_theme_colors()
-
-    # 区域标题
-    title = ft.Text("兴趣标签", size=16, weight="bold", color=theme["text"])
-
-    # 使用Row包装标签，并设置wrap=True
-    tags_container = ft.Row(
-        wrap=True,
-        spacing=10,
-        run_spacing=10,
-    )
-
-    # 获取最大权重用于计算字体大小
-    tags = data["interest_tags"]
-    if not tags:
-        return ft.Column([
-            title,
-            ft.Container(height=15),
-            ft.Text("暂无足够数据生成标签", color=theme["text"]),
-        ])
-
-    max_weight = max(tag["weight"] for tag in tags)
-    min_weight = min(tag["weight"] for tag in tags)
-
-    # 字体大小范围
-    min_font_size = 12
-    max_font_size = 22
-
-    # 创建标签
-    for tag_info in tags:
-        tag_name = tag_info["tag"]
-        weight = tag_info["weight"]
-
-        # 计算字体大小
-        if max_weight == min_weight:  # 避免除以零
-            font_size = (min_font_size + max_font_size) / 2
-        else:
-            normalized_weight = (weight - min_weight) / \
-                (max_weight - min_weight)
-            font_size = min_font_size + normalized_weight * \
-                (max_font_size - min_font_size)
-
-        # 创建标签
-        tag_container = ft.Container(
-            content=ft.Text(
-                tag_name,
-                size=font_size,
-                color=client.THEME_PRIMARY,
-                weight="bold",
-            ),
-            padding=ft.padding.all(8),
-            border_radius=15,
-            bgcolor="#303030",  # 标签背景色
-            margin=ft.margin.only(right=5, bottom=5),  # 确保标签之间有间距
-        )
-
-        tags_container.controls.append(tag_container)
-
-    return ft.Column([
-        title,
-        ft.Container(height=15),  # 间隔
-        tags_container,
-    ], spacing=0)
-
-
 def create_daily_progress_chart(client, data: Dict[str, Any]) -> ft.Container:
-    """创建每日观看时长图表"""
+    """创建每日观看时长图表 - 使用固定参考值计算比例"""
     theme = client.get_current_theme_colors()
 
     # 获取每日数据
@@ -503,9 +436,16 @@ def create_daily_progress_chart(client, data: Dict[str, Any]) -> ft.Container:
     # 创建图表容器
     chart_container = ft.Container(height=250)
 
-    # 获取最大值用于计算比例
-    max_progress = max(item["progress"]
-                       for item in daily_data) if daily_data else 1
+    # 使用固定参考值而不是最大值
+    reference_max = 240  # 4小时(240分钟)设为满高度
+
+    # 找出实际最大值，用于动态调整参考值
+    actual_max = max(item["progress"]
+                     for item in daily_data) if daily_data else 1
+
+    # 如果实际最大值超过参考值，调整参考值以确保最高的柱子不会超出容器
+    if actual_max > reference_max:
+        reference_max = actual_max * 1.1  # 留出10%的余量
 
     # 创建柱状图
     chart_content = ft.Row(
@@ -519,9 +459,10 @@ def create_daily_progress_chart(client, data: Dict[str, Any]) -> ft.Container:
         progress = day_data["progress"]  # 分钟
         count = day_data["count"]
 
-        # 计算柱子高度
-        height_percent_textage = progress / max_progress if max_progress > 0 else 0
-        bar_height = 180 * height_percent_textage if height_percent_textage > 0 else 10
+        # 计算柱子高度 - 相对于固定参考值
+        height_percentage = progress / reference_max
+        # 确保即使时间很短也有最小高度显示
+        bar_height = max(180 * height_percentage, 5) if progress > 0 else 0
 
         # 创建柱状图柱子
         chart_content.controls.append(
@@ -555,3 +496,95 @@ def create_daily_progress_chart(client, data: Dict[str, Any]) -> ft.Container:
 
     chart_container.content = chart_content
     return chart_container
+
+
+def generate_personality_report(data: Dict[str, Any]) -> str:
+    """根据用户数据生成分析报告"""
+
+    # # 获取全局平均数据
+    # try:
+    #     from utils.data_collector import UserDataCollector
+    #     collector = UserDataCollector()
+
+    #     # 首先上传当前用户数据
+    #     data_to_upload = collector.collect_viewing_data(data)
+    #     collector.upload_data(data_to_upload)
+
+    #     # 然后获取平均数据
+    #     avg_metrics = collector.get_average_metrics()
+    # except Exception as e:
+    #     logger.warning(f"获取平均指标数据失败: {e}")
+    #     avg_metrics = None
+
+    # 1. 提取分析所需的关键数据
+    total_videos = data["total_videos"]
+    total_hours = data["total_hours"]
+    top_category = data["top_category"]
+    avg_daily = data["avg_daily"]
+    categories = data["categories"]
+    time_distribution = data["time_distribution"]
+    daily_stats = data["daily_stats"]
+
+    # 2. 确定用户观看习惯特点
+
+    # 确定主要观看时段
+    prime_time = max(time_distribution.items(), key=lambda x: x[1])[0]
+
+    # 计算分类多样性
+    category_diversity = len([c for c, v in categories.items() if v > 1])
+
+    # 判断是否有明显的偏好分类
+    has_strong_preference = False
+    if categories and top_category:
+        top_category_count = categories.get(top_category, 0)
+        if top_category_count / total_videos > 0.4:  # 超过40%是同一分类
+            has_strong_preference = True
+
+    # 观看规律性 - 分析每日观看波动
+    daily_progress = [day["progress"] for day in daily_stats]
+    if daily_progress:
+        avg_progress = sum(daily_progress) / len(daily_progress)
+        variance = sum((p - avg_progress) **
+                       2 for p in daily_progress) / len(daily_progress)
+        viewing_regularity = "规律" if variance < (avg_progress * 0.5) else "不规律"
+    else:
+        viewing_regularity = "不规律"
+
+    # 3. 生成个性化报告文本
+    report = []
+
+    # 开场白
+    report.append(f"📊 **B站观看习惯分析**\n")
+
+    # 基本观看量评价
+    if total_hours > 14:
+        report.append(f"你在过去7天内观看了{total_hours}小时的内容，是个重度B站用户！")
+    elif total_hours > 7:
+        report.append(f"你在过去7天内观看了{total_hours}小时的内容，算是个中度B站爱好者。")
+    else:
+        report.append(f"你在过去7天内观看了{total_hours}小时的内容，属于轻度休闲观看。")
+
+    # 分类偏好分析
+    if has_strong_preference:
+        report.append(f"\n你对「{top_category}」分区有明显偏好，这类视频占据了你大部分观看时间。")
+    elif category_diversity > 3:
+        report.append(f"\n你的兴趣非常广泛，跨越了{category_diversity}个不同分区，喜欢探索多元内容。")
+    else:
+        report.append(f"\n你主要关注「{top_category}」等少数几个分区，有比较集中的兴趣范围。")
+
+    # 时间习惯分析与平均比较
+    report.append(f"\n你最喜欢在{prime_time}观看视频，这个时段占据了你的主要观看时间。")
+
+    # 观看规律性分析
+    report.append(f"\n从每日数据来看，你的观看习惯比较{viewing_regularity}。")
+
+    # 个性化建议
+    report.append("\n**个性化建议：**")
+    if viewing_regularity == "不规律" and total_hours > 7:
+        report.append("- 尝试设定固定的观看时间，避免长时间沉迷")
+    if has_strong_preference:
+        report.append(f"- 尝试探索更多分区内容，拓展你的兴趣范围")
+    if prime_time == "0-6点":
+        report.append("- 注意调整作息，避免深夜观看影响睡眠")
+
+    return "\n".join(report)

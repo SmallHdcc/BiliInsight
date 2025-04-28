@@ -63,6 +63,7 @@ def create_history_card(client, item: Dict[str, Any]) -> ft.Card:
     title = item.get("title", "无标题")
     author = item.get("author_name", "未知作者")
     view_at = item.get("view_at", "")
+    progress = item.get("progress", 0)
 
     # Format timestamp if available
     view_time = ""
@@ -73,6 +74,9 @@ def create_history_card(client, item: Dict[str, Any]) -> ft.Card:
                 "%Y-%m-%d %H:%M", time.localtime(int(view_at)))
         except:
             view_time = "未知时间"
+
+    if progress < 0:
+        progress = item.get("duration", 0)
 
     return ft.Card(
         elevation=2,
@@ -92,15 +96,6 @@ def create_history_card(client, item: Dict[str, Any]) -> ft.Card:
                             top_left=8, top_right=8
                         ),
                         clip_behavior=ft.ClipBehavior.ANTI_ALIAS,
-                    ),
-                    # Play button overlay
-                    ft.Container(
-                        content=ft.Icon(
-                            ft.Icons.PLAY_CIRCLE_FILL,
-                            color=ft.Colors.WHITE,
-                            size=50,
-                        ),
-                        alignment=ft.alignment.center,
                     ),
                 ]),
                 # Video details
@@ -126,6 +121,13 @@ def create_history_card(client, item: Dict[str, Any]) -> ft.Card:
                             ft.Icon(ft.Icons.SCHEDULE, size=14,
                                     color=ft.Colors.GREY_400),
                             ft.Text(view_time, size=14,
+                                    color=ft.Colors.GREY_400),
+                        ], spacing=5),
+                        # Progress
+                        ft.Row([
+                            ft.Icon(ft.Icons.SPEED, size=14,
+                                    color=ft.Colors.GREY_400),
+                            ft.Text(f"观看时长: {progress}秒", size=14,
                                     color=ft.Colors.GREY_400),
                         ], spacing=5),
                     ], spacing=8),
