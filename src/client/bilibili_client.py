@@ -34,6 +34,7 @@ class BilibiliClient:
     def __init__(self):
         self.login_cookies = None
         self.tag_names = []
+        self.history: List[Dict[str, Any]] = []
         self.is_dark_theme = True  # 默认为深色主题
 
     def get_current_theme_colors(self):
@@ -91,6 +92,7 @@ class BilibiliClient:
             history = []
 
         # Create modern UI layout
+        self.history = history
         create_app_layout(self, page, user_info, history)
 
     def _handle_expired_qr_code(self, page: ft.Page) -> None:

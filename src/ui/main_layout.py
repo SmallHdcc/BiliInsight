@@ -7,6 +7,9 @@ from ui.history_view import show_watch_history
 
 def create_app_layout(client, page: ft.Page, user_info: Dict[str, Any], history: List[Dict[str, Any]]) -> None:
     """Create the main application layout with sidebar and content area."""
+    # 缓存最新历史数据，便于主题切换等场景复用
+    client.history = history
+
     # Create content area container that will be updated
     content_container = ft.Container(
         expand=True,
