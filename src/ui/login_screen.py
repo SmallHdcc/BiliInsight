@@ -48,6 +48,7 @@ def setup_login_screen(page: ft.Page, client) -> None:
                 # 二维码图片
                 ft.Container(
                     content=ft.Image(
+                        key="qr_code",
                         src=qrcode_path,
                         width=200,
                         height=200,
