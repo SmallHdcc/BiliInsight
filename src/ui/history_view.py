@@ -18,7 +18,8 @@ def show_watch_history(client, history: List[Dict[str, Any]], content_area: ft.C
     page = content_area.page
 
     # 标题区和操作按钮
-    title = ft.Text("观看历史", size=24, weight="bold", color=theme["text"])
+    title = ft.Text("观看历史", size=28, weight="bold", color=theme["text"])
+    subtitle = ft.Text("快速筛选、排序并导出你的观看足迹", size=14, color=ft.Colors.GREY_400)
 
     filtered_records: List[Dict[str, Any]] = []
 
@@ -166,6 +167,10 @@ def show_watch_history(client, history: List[Dict[str, Any]], content_area: ft.C
     export_button = ft.ElevatedButton(
         text="导出CSV",
         icon=ft.Icons.DOWNLOAD,
+        style=ft.ButtonStyle(
+            shape=ft.RoundedRectangleBorder(radius=10),
+            padding=ft.padding.symmetric(horizontal=18, vertical=14),
+        ),
         bgcolor=client.THEME_PRIMARY,
         color=client.THEME_TEXT_DARK,
         on_click=handle_export,
@@ -184,7 +189,7 @@ def show_watch_history(client, history: List[Dict[str, Any]], content_area: ft.C
 
     content = ft.Column(
         [
-            ft.Row([title], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
+            ft.Column([title, subtitle], spacing=4),
             filter_bar,
             ft.Container(height=10),
             summary_wrap,
@@ -290,13 +295,13 @@ def create_history_card(client, item: Dict[str, Any], page: ft.Page) -> ft.Card:
         )
 
     return ft.Card(
-        elevation=3,
+        elevation=2,
         surface_tint_color=theme["card"],
         margin=0,
         content=ft.Container(
             width=300,
             bgcolor=theme["card"],
-            border_radius=12,
+            border_radius=14,
             clip_behavior=ft.ClipBehavior.ANTI_ALIAS,
             content=ft.Column(
                 [
