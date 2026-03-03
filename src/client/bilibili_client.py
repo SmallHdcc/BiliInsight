@@ -30,6 +30,8 @@ class BilibiliClient:
     # Common colors
     THEME_PRIMARY = "#FB7299"  # Bilibili Pink
     THEME_SECONDARY = "#505050"  # Secondary elements
+    LOGIN_POLL_INTERVAL_SECONDS = 2
+    LOGIN_POLL_MAX_RETRIES = 180
 
     def __init__(self):
         self.login_cookies = None
@@ -58,17 +60,25 @@ class BilibiliClient:
 
     def check_login_status(self, qrcode_key: str, qr_file_path: str, page: ft.Page) -> None:
         """Check QR code login status periodically."""
-        while True:
+        retries = 0
+        while retries < self.LOGIN_POLL_MAX_RETRIES:
             status, cookies = check_login_status(qrcode_key)
 
             if status == 0:  # Login successful
                 self.login_cookies = cookies
                 self._handle_successful_login(page)
-
                 break
             elif status == 86038:  # QR code expired
                 self._handle_expired_qr_code(page)
                 break
+            elif status < 0:
+                self._show_error_page(page, "网络异常，请稍后重试")
+                break
+
+            retries += 1
+            time.sleep(self.LOGIN_POLL_INTERVAL_SECONDS)
+        else:
+            self._show_error_page(page, "登录状态轮询超时，请刷新二维码后重试")
 
         # 删除图片
         import os
@@ -122,12 +132,13 @@ class BilibiliClient:
             hasattr(c, 'key') and c.key == "error_message")]
 
         # Regenerate QR code
-        new_qrcode_key = self.get_qr_code()
-        if new_qrcode_key:
+        qr_data = self.get_qr_code()
+        if qr_data:
+            new_qrcode_key, new_qr_file_path = qr_data
             # Update QR code image
             for control in page.controls:
                 if hasattr(control, 'key') and control.key == "qr_code":
-                    control.src = "qr_code.png"
+                    control.src = new_qr_file_path
                     control.update()
                     break
 
@@ -136,7 +147,7 @@ class BilibiliClient:
             # Start new checking thread
             threading.Thread(
                 target=self.check_login_status,
-                args=(new_qrcode_key, page),
+                args=(new_qrcode_key, new_qr_file_path, page),
                 daemon=True
             ).start()
         else:
@@ -152,13 +163,13 @@ class BilibiliClient:
                 content=ft.Column([
                     ft.Icon(ft.icons.ERROR_OUTLINE, size=64,
                             color=self.THEME_PRIMARY),
-                    ft.Text(message, size=18, color=self.THEME_TEXT, weight="bold",
+                    ft.Text(message, size=18, color=self.THEME_TEXT_DARK, weight="bold",
                             text_align=ft.TextAlign.CENTER),
                     ft.ElevatedButton(
                         "重试",
                         on_click=lambda _: self._reload_app(page),
                         style=ft.ButtonStyle(
-                            color=self.THEME_TEXT,
+                            color=self.THEME_TEXT_DARK,
                             bgcolor=self.THEME_PRIMARY,
                             shape=ft.RoundedRectangleBorder(radius=8),
                         )
@@ -180,20 +191,7 @@ class BilibiliClient:
         page.clean()
         page.bgcolor = self.THEME_DARK  # 确保背景色正确
 
-        # Get new QR code
-        new_qrcode_key = self.get_qr_code()
-        if new_qrcode_key:
-            setup_login_screen(page, self)
-
-            # Start login status checking thread
-            import threading
-            threading.Thread(
-                target=self.check_login_status,
-                args=(new_qrcode_key, page),
-                daemon=True
-            ).start()
-        else:
-            self._show_error_page(page, "无法生成登录二维码，请检查网络连接")
+        setup_login_screen(page, self)
 
     def get_user_info(self) -> Optional[Dict[str, Any]]:
         """Get user information using the login cookies."""
