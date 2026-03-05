@@ -1,8 +1,8 @@
 import logging
+import threading
 import time
 from typing import Any, Dict, List, Optional, Tuple
 
-import qrcode
 import requests
 
 logger = logging.getLogger("biliinsight.client.api")
@@ -12,14 +12,26 @@ HEADERS = {
 }
 
 REQUEST_TIMEOUT = 10
+_THREAD_LOCAL = threading.local()
+
+
+def _get_session() -> requests.Session:
+    """Return a per-thread requests session for connection reuse."""
+    session = getattr(_THREAD_LOCAL, "session", None)
+    if session is None:
+        session = requests.Session()
+        session.headers.update(HEADERS)
+        _THREAD_LOCAL.session = session
+    return session
 
 
 def get_qr_code() -> Optional[Tuple[str, str]]:
     """Get Bilibili login QR code and return the QR code key."""
     try:
-        response = requests.get(
+        import qrcode
+
+        response = _get_session().get(
             "https://passport.bilibili.com/x/passport-login/web/qrcode/generate",
-            headers=HEADERS,
             timeout=REQUEST_TIMEOUT,
         )
         response.raise_for_status()
@@ -45,9 +57,8 @@ def get_qr_code() -> Optional[Tuple[str, str]]:
 def check_login_status(qrcode_key: str) -> Tuple[int, Optional[requests.cookies.RequestsCookieJar]]:
     """Check QR code login status."""
     try:
-        response = requests.get(
+        response = _get_session().get(
             f"https://passport.bilibili.com/x/passport-login/web/qrcode/poll?qrcode_key={qrcode_key}",
-            headers=HEADERS,
             timeout=REQUEST_TIMEOUT,
         )
         response.raise_for_status()
@@ -66,9 +77,8 @@ def check_login_status(qrcode_key: str) -> Tuple[int, Optional[requests.cookies.
 def get_user_info(cookies) -> Optional[Dict[str, Any]]:
     """Get user information using the login cookies."""
     try:
-        response = requests.get(
+        response = _get_session().get(
             "https://api.bilibili.com/x/web-interface/nav",
-            headers=HEADERS,
             cookies=cookies,
             timeout=REQUEST_TIMEOUT,
         )
@@ -119,9 +129,8 @@ def get_watch_history(cookies, days=7, page_size=30) -> Optional[List[Dict[str, 
             total_pages += 1
             logger.debug(f"获取历史记录第{total_pages}页，参数：{params}")
 
-            response = requests.get(
+            response = _get_session().get(
                 "https://api.bilibili.com/x/web-interface/history/cursor",
-                headers=HEADERS,
                 cookies=cookies,
                 params=params,
                 timeout=REQUEST_TIMEOUT,

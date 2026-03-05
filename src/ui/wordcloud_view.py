@@ -30,7 +30,7 @@ def show_wordcloud(client, history: List[Dict[str, Any]], content_area: ft.Conta
                     alignment=ft.MainAxisAlignment.CENTER,
                     horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                     spacing=20),
-                alignment=ft.alignment.center,
+                alignment=ft.Alignment.CENTER,
                 expand=True,
             )
         ], spacing=20, expand=True, key="wordcloud_view")
@@ -45,15 +45,16 @@ def show_wordcloud(client, history: List[Dict[str, Any]], content_area: ft.Conta
 
             # Display word cloud
             wordcloud_image = ft.Image(
+                src="",
                 src_base64=img_base64,
-                fit=ft.ImageFit.CONTAIN,
+                fit="contain",
             )
 
             content = ft.Column([
                 title,
                 ft.Container(
                     content=wordcloud_image,
-                    alignment=ft.alignment.center,
+                    alignment=ft.Alignment.CENTER,
                     margin=ft.margin.only(top=20),
                     border_radius=15,
                     clip_behavior=ft.ClipBehavior.ANTI_ALIAS,
@@ -73,7 +74,7 @@ def show_wordcloud(client, history: List[Dict[str, Any]], content_area: ft.Conta
                         alignment=ft.MainAxisAlignment.CENTER,
                         horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                         spacing=20),
-                    alignment=ft.alignment.center,
+                    alignment=ft.Alignment.CENTER,
                     expand=True,
                 )
             ], spacing=20, expand=True, key="wordcloud_view")

@@ -85,14 +85,19 @@ def show_watch_history(client, history: List[Dict[str, Any]], content_area: ft.C
         total_seconds = sum(_get_watch_seconds(item) for item in record_list)
         total_minutes = int(total_seconds // 60)
 
-        top_category = _most_common(record_list, key=lambda x: x.get("tag_name") or "") or "暂无数据"
-        top_creator = _most_common(record_list, key=lambda x: x.get("author_name") or x.get("author") or "") or "暂无数据"
+        top_category = _most_common(
+            record_list, key=lambda x: x.get("tag_name") or "") or "暂无数据"
+        top_creator = _most_common(record_list, key=lambda x: x.get(
+            "author_name") or x.get("author") or "") or "暂无数据"
 
         summary_wrap.controls = [
-            _create_summary_chip(client, ft.Icons.VIDEO_COLLECTION, "视频数量", f"{len(record_list)} 条"),
-            _create_summary_chip(client, ft.Icons.ACCESS_TIME, "累计观看", _format_minutes(total_minutes)),
+            _create_summary_chip(
+                client, ft.Icons.VIDEO_COLLECTION, "视频数量", f"{len(record_list)} 条"),
+            _create_summary_chip(client, ft.Icons.ACCESS_TIME,
+                                 "累计观看", _format_minutes(total_minutes)),
             _create_summary_chip(client, ft.Icons.GROUP, "常看的UP", top_creator),
-            _create_summary_chip(client, ft.Icons.CATEGORY, "热门分区", top_category),
+            _create_summary_chip(client, ft.Icons.CATEGORY,
+                                 "热门分区", top_category),
         ]
         summary_wrap.update()
 
@@ -106,7 +111,8 @@ def show_watch_history(client, history: List[Dict[str, Any]], content_area: ft.C
         for item in history:
             if query:
                 title_text = (item.get("title") or "").lower()
-                author_text = (item.get("author_name") or item.get("author") or "").lower()
+                author_text = (item.get("author_name")
+                               or item.get("author") or "").lower()
                 if query not in title_text and query not in author_text:
                     continue
 
@@ -131,14 +137,15 @@ def show_watch_history(client, history: List[Dict[str, Any]], content_area: ft.C
             history_container.content = ft.Container(
                 content=ft.Column(
                     [
-                        ft.Icon(ft.Icons.HISTORY_TOGGLE_OFF, size=64, color=client.THEME_PRIMARY),
+                        ft.Icon(ft.Icons.HISTORY_TOGGLE_OFF,
+                                size=64, color=client.THEME_PRIMARY),
                         ft.Text("没有符合条件的观看记录", size=18, color=theme["text"]),
                     ],
                     alignment=ft.MainAxisAlignment.CENTER,
                     horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                     spacing=16,
                 ),
-                alignment=ft.alignment.center,
+                alignment=ft.Alignment.CENTER,
                 expand=True,
             )
         else:
@@ -178,10 +185,10 @@ def show_watch_history(client, history: List[Dict[str, Any]], content_area: ft.C
 
     filter_bar = ft.ResponsiveRow(
         controls=[
-            ft.Column([search_field], col=4, col_md=4, col_lg=4),
-            ft.Column([timeframe_filter], col=3, col_md=3, col_lg=3),
-            ft.Column([sort_filter], col=3, col_md=3, col_lg=3),
-            ft.Column([export_button], col=2, col_md=2, col_lg=2),
+            ft.Column([search_field], col={"sm": 12, "md": 4, "lg": 4}),
+            ft.Column([timeframe_filter], col={"sm": 12, "md": 3, "lg": 3}),
+            ft.Column([sort_filter], col={"sm": 12, "md": 3, "lg": 3}),
+            ft.Column([export_button], col={"sm": 12, "md": 2, "lg": 2}),
         ],
         run_spacing=10,
         spacing=10,
@@ -216,7 +223,8 @@ def create_history_card(client, item: Dict[str, Any], page: ft.Page) -> ft.Card:
     view_time = _format_timestamp(item.get("view_at"))
     progress_seconds = _get_watch_seconds(item)
     duration_seconds = max(int(item.get("duration", 0) or 0), progress_seconds)
-    progress_ratio = min(progress_seconds / duration_seconds, 1) if duration_seconds else 0
+    progress_ratio = min(progress_seconds / duration_seconds,
+                         1) if duration_seconds else 0
     progress_text = _format_duration(progress_seconds)
     duration_text = _format_duration(duration_seconds)
 
@@ -262,7 +270,8 @@ def create_history_card(client, item: Dict[str, Any], page: ft.Page) -> ft.Card:
         info_controls.append(
             ft.Chip(
                 label=ft.Text(tag_label, size=12, color=theme["text"]),
-                avatar=ft.Icon(ft.Icons.LOCAL_OFFER, size=16, color=client.THEME_PRIMARY),
+                avatar=ft.Icon(ft.Icons.LOCAL_OFFER, size=16,
+                               color=client.THEME_PRIMARY),
                 bgcolor=ft.Colors.with_opacity(0.15, client.THEME_PRIMARY),
             )
         )
@@ -271,7 +280,8 @@ def create_history_card(client, item: Dict[str, Any], page: ft.Page) -> ft.Card:
         [
             ft.Row(
                 [
-                    ft.Icon(ft.Icons.SCHEDULE, size=14, color=ft.Colors.GREY_400),
+                    ft.Icon(ft.Icons.SCHEDULE, size=14,
+                            color=ft.Colors.GREY_400),
                     ft.Text(view_time, size=13, color=ft.Colors.GREY_400),
                 ],
                 spacing=6,
@@ -279,11 +289,13 @@ def create_history_card(client, item: Dict[str, Any], page: ft.Page) -> ft.Card:
             ft.Row(
                 [
                     ft.Icon(ft.Icons.SPEED, size=14, color=ft.Colors.GREY_400),
-                    ft.Text(f"观看 {progress_text} / 总时长 {duration_text}", size=13, color=ft.Colors.GREY_400),
+                    ft.Text(f"观看 {progress_text} / 总时长 {duration_text}",
+                            size=13, color=ft.Colors.GREY_400),
                 ],
                 spacing=6,
             ),
-            ft.LinearProgressIndicator(value=progress_ratio, bgcolor=ft.Colors.with_opacity(0.2, client.THEME_PRIMARY)),
+            ft.LinearProgressIndicator(
+                value=progress_ratio, bgcolor=ft.Colors.with_opacity(0.2, client.THEME_PRIMARY)),
         ]
     )
 
@@ -291,7 +303,8 @@ def create_history_card(client, item: Dict[str, Any], page: ft.Page) -> ft.Card:
 
     if action_buttons:
         info_column.controls.append(
-            ft.Row(action_buttons, spacing=0, alignment=ft.MainAxisAlignment.END)
+            ft.Row(action_buttons, spacing=0,
+                   alignment=ft.MainAxisAlignment.END)
         )
 
     return ft.Card(
@@ -308,11 +321,12 @@ def create_history_card(client, item: Dict[str, Any], page: ft.Page) -> ft.Card:
                     ft.Container(
                         content=ft.Image(
                             src=cover_url,
-                            fit=ft.ImageFit.COVER,
+                            fit="cover",
                             width=300,
                             height=160,
                         ),
-                        bgcolor=ft.Colors.with_opacity(0.1, client.THEME_PRIMARY),
+                        bgcolor=ft.Colors.with_opacity(
+                            0.1, client.THEME_PRIMARY),
                     ),
                     ft.Container(
                         content=info_column,
@@ -417,7 +431,8 @@ def _create_summary_chip(client, icon: str, label: str, value: str) -> ft.Contai
                 ft.Column(
                     [
                         ft.Text(label, size=12, color=ft.Colors.GREY_500),
-                        ft.Text(value, size=16, weight="w600", color=theme["text"]),
+                        ft.Text(value, size=16, weight="w600",
+                                color=theme["text"]),
                     ],
                     spacing=4,
                     alignment=ft.MainAxisAlignment.CENTER,

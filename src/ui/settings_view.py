@@ -145,7 +145,7 @@ def logout(client, page: ft.Page) -> None:
                 ], alignment=ft.MainAxisAlignment.CENTER,
                     horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                     spacing=20),
-                alignment=ft.alignment.center,
+                alignment=ft.Alignment.CENTER,
                 expand=True
             )
             page.add(loading)
@@ -190,7 +190,7 @@ def logout(client, page: ft.Page) -> None:
                         alignment=ft.MainAxisAlignment.CENTER,
                         horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                         spacing=20),
-                    alignment=ft.alignment.center,
+                    alignment=ft.Alignment.CENTER,
                     expand=True,
                 )
             )
@@ -240,7 +240,7 @@ def logout(client, page: ft.Page) -> None:
         # 居中显示对话框
         ft.Container(
             content=dialog_content,
-            alignment=ft.alignment.center,
+            alignment=ft.Alignment.CENTER,
         ),
     ])
 
@@ -381,7 +381,7 @@ def show_about_dialog(page: ft.Page, client) -> None:
         # 居中显示对话框
         ft.Container(
             content=dialog_content,
-            alignment=ft.alignment.center,
+            alignment=ft.Alignment.CENTER,
         ),
     ])
 

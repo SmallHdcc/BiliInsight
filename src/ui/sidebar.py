@@ -21,10 +21,12 @@ def create_sidebar(client, user_info: Dict[str, Any], content_area: ft.Container
         for nav_item in nav_items:
             is_active = nav_item.data["key"] == selected_key
             nav_item.data["active"] = is_active
-            nav_item.bgcolor = ft.Colors.with_opacity(0.2, client.THEME_PRIMARY) if is_active else None
+            nav_item.bgcolor = ft.Colors.with_opacity(
+                0.2, client.THEME_PRIMARY) if is_active else None
             nav_item.border = ft.border.all(
                 1,
-                ft.Colors.with_opacity(0.55 if is_active else 0.0, client.THEME_PRIMARY),
+                ft.Colors.with_opacity(
+                    0.55 if is_active else 0.0, client.THEME_PRIMARY),
             )
             nav_item.update()
 
@@ -56,7 +58,7 @@ def create_sidebar(client, user_info: Dict[str, Any], content_area: ft.Container
             spacing=5,
         ),
         padding=ft.padding.only(top=32, bottom=28),
-        alignment=ft.alignment.center,
+        alignment=ft.Alignment.CENTER,
     )
 
     nav_history = create_nav_item(
@@ -64,7 +66,8 @@ def create_sidebar(client, user_info: Dict[str, Any], content_area: ft.Container
         "历史记录",
         ft.Icons.HISTORY,
         "history",
-        lambda _: [show_watch_history(client, history, content_area), update_active_nav("history")],
+        lambda _: [show_watch_history(
+            client, history, content_area), update_active_nav("history")],
         is_active=True,
     )
 
@@ -73,7 +76,8 @@ def create_sidebar(client, user_info: Dict[str, Any], content_area: ft.Container
         "数据分析",
         ft.Icons.INSERT_CHART,
         "analysis",
-        lambda _: [show_analysis_overview(client, history, content_area), update_active_nav("analysis")],
+        lambda _: [show_analysis_overview(
+            client, history, content_area), update_active_nav("analysis")],
     )
 
     nav_wordcloud = create_nav_item(
@@ -81,7 +85,8 @@ def create_sidebar(client, user_info: Dict[str, Any], content_area: ft.Container
         "标签词云",
         ft.Icons.CLOUD,
         "wordcloud",
-        lambda _: [show_wordcloud(client, history, content_area), update_active_nav("wordcloud")],
+        lambda _: [show_wordcloud(
+            client, history, content_area), update_active_nav("wordcloud")],
     )
 
     nav_settings = create_nav_item(
@@ -89,7 +94,8 @@ def create_sidebar(client, user_info: Dict[str, Any], content_area: ft.Container
         "设置",
         ft.Icons.SETTINGS,
         "settings",
-        lambda _: [show_settings(client, content_area), update_active_nav("settings")],
+        lambda _: [show_settings(client, content_area),
+                   update_active_nav("settings")],
     )
 
     nav_items = [nav_history, nav_analysis, nav_wordcloud, nav_settings]
@@ -101,7 +107,8 @@ def create_sidebar(client, user_info: Dict[str, Any], content_area: ft.Container
         content=ft.Column(
             [
                 user_profile,
-                ft.Divider(height=1, color=ft.Colors.with_opacity(0.2, client.THEME_PRIMARY)),
+                ft.Divider(height=1, color=ft.Colors.with_opacity(
+                    0.2, client.THEME_PRIMARY)),
                 ft.Container(
                     content=ft.Column(nav_items, spacing=2),
                     margin=ft.margin.only(top=10),
@@ -126,10 +133,12 @@ def create_nav_item(client, text: str, icon: str, key: str, on_click, is_active:
         ),
         padding=15,
         border_radius=10,
-        bgcolor=ft.Colors.with_opacity(0.2, client.THEME_PRIMARY) if is_active else None,
+        bgcolor=ft.Colors.with_opacity(
+            0.2, client.THEME_PRIMARY) if is_active else None,
         border=ft.border.all(
             1,
-            ft.Colors.with_opacity(0.55, client.THEME_PRIMARY) if is_active else ft.Colors.TRANSPARENT,
+            ft.Colors.with_opacity(
+                0.55, client.THEME_PRIMARY) if is_active else ft.Colors.TRANSPARENT,
         ),
         on_hover=lambda e: on_nav_hover(e, client),
         on_click=on_click,
@@ -146,6 +155,7 @@ def on_nav_hover(e, client) -> None:
     if e.data == "true":
         e.control.bgcolor = ft.Colors.with_opacity(0.12, client.THEME_PRIMARY)
     else:
-        e.control.bgcolor = ft.Colors.with_opacity(0.2, client.THEME_PRIMARY) if is_active else None
+        e.control.bgcolor = ft.Colors.with_opacity(
+            0.2, client.THEME_PRIMARY) if is_active else None
 
     e.control.update()

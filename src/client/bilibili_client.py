@@ -10,10 +10,6 @@ from client.api import (
     get_user_info,
     get_watch_history
 )
-from ui.main_layout import create_app_layout
-from ui.history_view import show_watch_history
-from ui.wordcloud_view import show_wordcloud
-from ui.settings_view import show_settings
 
 
 class BilibiliClient:
@@ -38,6 +34,7 @@ class BilibiliClient:
         self.tag_names = []
         self.history: List[Dict[str, Any]] = []
         self.is_dark_theme = True  # 默认为深色主题
+        self.login_session_id = 0
 
     def get_current_theme_colors(self):
         """获取当前主题对应的颜色方案"""
@@ -58,10 +55,14 @@ class BilibiliClient:
         """Get Bilibili login QR code and return the QR code key."""
         return get_qr_code()
 
-    def check_login_status(self, qrcode_key: str, qr_file_path: str, page: ft.Page) -> None:
+    def check_login_status(self, qrcode_key: str, qr_file_path: str, page: ft.Page, session_id: Optional[int] = None) -> None:
         """Check QR code login status periodically."""
         retries = 0
         while retries < self.LOGIN_POLL_MAX_RETRIES:
+            # A new login screen has been rendered; stop polling the stale QR code.
+            if session_id is not None and session_id != self.login_session_id:
+                break
+
             status, cookies = check_login_status(qrcode_key)
 
             if status == 0:  # Login successful
@@ -87,6 +88,9 @@ class BilibiliClient:
 
     def _handle_successful_login(self, page: ft.Page) -> None:
         """Handle successful login by setting up the main UI."""
+        from ui.main_layout import create_app_layout
+        from ui.history_view import show_watch_history
+
         # Clear all existing content
         page.clean()
 
@@ -96,62 +100,37 @@ class BilibiliClient:
             self._show_error_page(page, "获取用户信息失败，请重试")
             return
 
-        # Get watch history
-        history = self.get_watch_history()
-        if not history:
-            history = []
+        # Render main layout first, then load history in background.
+        self.history.clear()
+        content_area = create_app_layout(self, page, user_info, self.history)
+        content_area.content = ft.Container(
+            expand=True,
+            alignment=ft.Alignment.CENTER,
+            content=ft.Column(
+                [
+                    ft.ProgressRing(width=42, height=42, stroke_width=3),
+                    ft.Text("正在加载观看历史...", size=15, color=ft.Colors.GREY_400),
+                ],
+                alignment=ft.MainAxisAlignment.CENTER,
+                horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                spacing=14,
+            ),
+        )
+        content_area.update()
 
-        # Create modern UI layout
-        self.history = history
-        create_app_layout(self, page, user_info, history)
+        def load_history() -> None:
+            history = self.get_watch_history() or []
+            self.history.clear()
+            self.history.extend(history)
+            if content_area.page is None:
+                return
+            show_watch_history(self, self.history, content_area)
+
+        page.run_thread(load_history)
 
     def _handle_expired_qr_code(self, page: ft.Page) -> None:
         """Handle expired QR code by regenerating a new one."""
-        # Clear error messages first
-        page.controls = [c for c in page.controls if not (
-            hasattr(c, 'key') and c.key == "error_message")]
-
-        # Add expired notice
-        page.add(
-            ft.Container(
-                content=ft.Text("二维码已失效，正在刷新...",
-                                size=16,
-                                color=self.THEME_TEXT_LIGHT,
-                                weight="bold",
-                                text_align=ft.TextAlign.CENTER
-                                ),
-                margin=ft.margin.only(bottom=20),
-                key="error_message"
-            )
-        )
-        page.update()
-
-        # Remove notice after 2 seconds
-        time.sleep(2)
-        page.controls = [c for c in page.controls if not (
-            hasattr(c, 'key') and c.key == "error_message")]
-
-        # Regenerate QR code
-        qr_data = self.get_qr_code()
-        if qr_data:
-            new_qrcode_key, new_qr_file_path = qr_data
-            # Update QR code image
-            for control in page.controls:
-                if hasattr(control, 'key') and control.key == "qr_code":
-                    control.src = new_qr_file_path
-                    control.update()
-                    break
-
-            page.update()
-
-            # Start new checking thread
-            threading.Thread(
-                target=self.check_login_status,
-                args=(new_qrcode_key, new_qr_file_path, page),
-                daemon=True
-            ).start()
-        else:
-            self._show_error_page(page, "生成新的二维码失败，请刷新页面重试")
+        self._reload_app(page)
 
     def _show_error_page(self, page: ft.Page, message: str) -> None:
         """Display an error page with the given message."""
@@ -178,7 +157,7 @@ class BilibiliClient:
                     alignment=ft.MainAxisAlignment.CENTER,
                     horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                     spacing=20),
-                alignment=ft.alignment.center,
+                alignment=ft.Alignment.CENTER,
                 padding=50,
             )
         )

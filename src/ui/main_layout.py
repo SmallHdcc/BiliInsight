@@ -2,10 +2,9 @@ import flet as ft
 from typing import Dict, List, Any
 
 from ui.sidebar import create_sidebar
-from ui.history_view import show_watch_history
 
 
-def create_app_layout(client, page: ft.Page, user_info: Dict[str, Any], history: List[Dict[str, Any]]) -> None:
+def create_app_layout(client, page: ft.Page, user_info: Dict[str, Any], history: List[Dict[str, Any]]) -> ft.Container:
     """Create the main application layout with sidebar and content area."""
     theme = client.get_current_theme_colors()
 
@@ -38,7 +37,5 @@ def create_app_layout(client, page: ft.Page, user_info: Dict[str, Any], history:
     )
 
     page.add(main_layout)
-
-    # Show history initially
-    show_watch_history(client, history, content_container)
     page.update()
+    return content_container

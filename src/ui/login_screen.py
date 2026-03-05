@@ -3,100 +3,177 @@ import threading
 
 
 def setup_login_screen(page: ft.Page, client) -> None:
-    """设置登录页面，使用Base64图片而不是文件"""
+    """渲染登录页面并在后台异步获取二维码。"""
+    page.clean()
 
-    # 获取新的二维码密钥和Base64图片
-    qrcode_key, qrcode_path = client.get_qr_code()
+    # 每次重绘登录页都创建一个新的会话标识，旧线程会自动失效。
+    client.login_session_id += 1
+    session_id = client.login_session_id
 
-    if not qrcode_key or not qrcode_path:
-        # 处理错误情况
-        page.add(
-            ft.Container(
-                content=ft.Text("获取登录二维码失败，请检查网络连接",
-                                color="red", size=16),
-                alignment=ft.alignment.center,
-                padding=20
-            )
-        )
+    qr_image = ft.Image(
+        src="",
+        key="qr_code",
+        width=220,
+        height=220,
+        fit="contain",
+        visible=False,
+    )
+    status_text = ft.Text(
+        "正在连接哔哩哔哩登录服务...",
+        size=13,
+        color=ft.Colors.GREY_400,
+        text_align=ft.TextAlign.CENTER,
+    )
+    loading_ring = ft.ProgressRing(width=34, height=34, stroke_width=3)
+    refresh_button = ft.OutlinedButton(
+        content="刷新二维码",
+        icon=ft.Icons.REFRESH,
+        disabled=True,
+    )
+
+    def set_status(message: str, color: str = ft.Colors.GREY_400) -> None:
+        status_text.value = message
+        status_text.color = color
+
+    def fetch_qr_async() -> None:
+        set_status("正在获取二维码...")
+        loading_ring.visible = True
+        qr_image.visible = False
+        refresh_button.disabled = True
         page.update()
-        return
 
-    # 创建登录卡片
-    login_card = ft.Card(
-        content=ft.Container(
-            content=ft.Column([
-                # B站Logo
-                ft.Container(
-                    content=ft.Row([
-                        ft.Text(
-                            "Bili",
-                            size=32,
-                            weight="bold",
-                            color=client.THEME_PRIMARY,
+        def worker() -> None:
+            qr_data = client.get_qr_code()
+            if session_id != client.login_session_id:
+                return
+
+            if not qr_data:
+                set_status("二维码获取失败，请检查网络后重试", ft.Colors.RED_300)
+                loading_ring.visible = False
+                refresh_button.disabled = False
+                page.update()
+                return
+
+            qrcode_key, qrcode_path = qr_data
+            qr_image.src = qrcode_path
+            qr_image.visible = True
+            loading_ring.visible = False
+            refresh_button.disabled = False
+            set_status("二维码已生成，请在手机端扫码登录", ft.Colors.GREEN_300)
+            page.update()
+
+            threading.Thread(
+                target=client.check_login_status,
+                args=(qrcode_key, qrcode_path, page, session_id),
+                daemon=True,
+            ).start()
+
+        threading.Thread(target=worker, daemon=True).start()
+
+    refresh_button.on_click = lambda _: fetch_qr_async()
+
+    brand_panel = ft.Container(
+        padding=ft.padding.symmetric(horizontal=30, vertical=28),
+        content=ft.Column(
+            [
+                ft.Row(
+                    [
+                        ft.Container(
+                            width=12,
+                            height=12,
+                            border_radius=10,
+                            bgcolor=client.THEME_PRIMARY,
                         ),
-                        ft.Text(
-                            "Client",
-                            size=32,
-                            weight="bold",
-                            color=client.THEME_LIGHT,
-                        ),
+                        ft.Text("BiliSight", size=30, weight="bold",
+                                color=ft.Colors.WHITE),
                     ],
-                        alignment=ft.MainAxisAlignment.CENTER,
-                    ),
-                    margin=ft.margin.only(bottom=20)
+                    spacing=10,
                 ),
-                # 二维码图片
-                ft.Container(
-                    content=ft.Image(
-                        key="qr_code",
-                        src=qrcode_path,
-                        width=200,
-                        height=200,
-                        fit=ft.ImageFit.CONTAIN,
-                    ),
-                    padding=20,
-                    border_radius=10,
-                    bgcolor=ft.Colors.WHITE,
-                    alignment=ft.alignment.center,
+                ft.Text("你的哔哩哔哩观看洞察", size=18, color=ft.Colors.GREY_300),
+                ft.Text(
+                    "登录后即可查看观看历史、词云和统计分析。",
+                    size=14,
+                    color=ft.Colors.GREY_400,
                 ),
-
-                # 登录说明
-                ft.Container(
-                    content=ft.Text(
-                        "请使用Bilibili手机客户端扫描二维码登录",
-                        size=16,
-                        color=client.THEME_LIGHT,
-                        text_align=ft.TextAlign.CENTER,
-                    ),
-                    margin=ft.margin.only(top=20),
-                ),
+                ft.Container(height=6),
+                ft.Row([ft.Icon(ft.Icons.LOCK, size=16, color=client.THEME_PRIMARY),
+                        ft.Text("仅使用官方扫码授权", size=13, color=ft.Colors.GREY_300)], spacing=8),
+                ft.Row([ft.Icon(ft.Icons.AUTO_GRAPH, size=16, color=client.THEME_PRIMARY),
+                        ft.Text("自动整理近 7 天观看记录", size=13, color=ft.Colors.GREY_300)], spacing=8),
+                ft.Row([ft.Icon(ft.Icons.PALETTE, size=16, color=client.THEME_PRIMARY),
+                        ft.Text("支持深浅主题切换", size=13, color=ft.Colors.GREY_300)], spacing=8),
             ],
-                alignment=ft.MainAxisAlignment.CENTER,
-                horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                spacing=10,
-            ),
-            width=400,
-            padding=50,
-            bgcolor=client.THEME_CARD_DARK,
-            border_radius=20,
+            spacing=14,
+            alignment=ft.MainAxisAlignment.CENTER,
         ),
-        elevation=5,
     )
 
-    # 添加到页面
-    page.add(
-        ft.Container(
-            content=login_card,
-            alignment=ft.alignment.center,
+    qr_panel = ft.Container(
+        padding=ft.padding.symmetric(horizontal=30, vertical=24),
+        bgcolor="#1D1F24",
+        border_radius=18,
+        border=ft.border.all(1, "#31343B"),
+        content=ft.Column(
+            [
+                ft.Text("扫码登录", size=22, weight="bold", color=ft.Colors.WHITE),
+                ft.Text("请使用哔哩哔哩手机客户端扫描二维码", size=13,
+                        color=ft.Colors.GREY_400),
+                ft.Container(
+                    width=270,
+                    height=270,
+                    border_radius=14,
+                    bgcolor=ft.Colors.WHITE,
+                    alignment=ft.Alignment.CENTER,
+                    content=ft.Stack(
+                        controls=[
+                            ft.Column(
+                                [
+                                    ft.Icon(ft.Icons.QR_CODE_2, size=58,
+                                            color=ft.Colors.GREY_300),
+                                    loading_ring,
+                                ],
+                                alignment=ft.MainAxisAlignment.CENTER,
+                                horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                                spacing=14,
+                            ),
+                            ft.Container(
+                                alignment=ft.Alignment.CENTER, content=qr_image),
+                        ],
+                    ),
+                ),
+                status_text,
+                refresh_button,
+            ],
+            spacing=14,
+            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+        ),
+    )
+
+    root = ft.Container(
+        expand=True,
+        padding=28,
+        gradient=ft.LinearGradient(
+            begin=ft.Alignment.TOP_LEFT,
+            end=ft.Alignment.BOTTOM_RIGHT,
+            colors=["#111216", "#1A1C21", "#121317"],
+        ),
+        content=ft.Container(
             expand=True,
-        )
+            border_radius=24,
+            bgcolor="#17191E",
+            border=ft.border.all(1, "#2B2E36"),
+            padding=24,
+            content=ft.ResponsiveRow(
+                [
+                    ft.Column([brand_panel], col={"sm": 12, "md": 5}),
+                    ft.Column([qr_panel], col={"sm": 12, "md": 7}),
+                ],
+                vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                run_spacing=24,
+            ),
+        ),
     )
-    page.update()
 
-    # 启动登录状态检查线程
-    check_thread = threading.Thread(
-        target=client.check_login_status,
-        args=(qrcode_key, qrcode_path, page),
-        daemon=True
-    )
-    check_thread.start()
+    page.add(root)
+    page.update()
+    fetch_qr_async()
